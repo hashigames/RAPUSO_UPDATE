@@ -1,0 +1,146 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Global default-deny safety net
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() >= 1 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isSignedIn() {
+      return request.auth != null && request.auth.token.email_verified == true;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isValidUserProfile(data, userId) {
+      return data.keys().hasAll(['uid', 'createdAt', 'updatedAt'])
+        && data.keys().hasOnly(['uid', 'displayName', 'createdAt', 'updatedAt'])
+        && isValidId(data.uid)
+        && data.uid == userId
+        && data.uid == request.auth.uid
+        && (!('displayName' in data) || (data.displayName is string && data.displayName.size() <= 120))
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    function isValidRiggedCharacter(data, userId, charId) {
+      return data.keys().hasAll([
+          'id', 'ownerUid', 'name', 'sourceFormat', 'primaryFileName',
+          'boneCount', 'skinnedMeshCount', 'hasSkinWeights',
+          'textureCount', 'chunkCount', 'totalBytes', 'createdAt', 'updatedAt'
+        ])
+        && data.keys().hasOnly([
+          'id', 'ownerUid', 'name', 'sourceFormat', 'primaryFileName',
+          'boneCount', 'skinnedMeshCount', 'hasSkinWeights',
+          'textureCount', 'chunkCount', 'totalBytes', 'createdAt', 'updatedAt'
+        ])
+        && isValidId(data.id)
+        && data.id == charId
+        && isValidId(data.ownerUid)
+        && data.ownerUid == userId
+        && data.ownerUid == request.auth.uid
+        && data.name is string && data.name.size() >= 1 && data.name.size() <= 120
+        && data.sourceFormat is string && data.sourceFormat in ['glb', 'gltf', 'fbx']
+        && data.primaryFileName is string && data.primaryFileName.size() >= 1 && data.primaryFileName.size() <= 180
+        && data.boneCount is int && data.boneCount >= 1 && data.boneCount <= 500
+        && data.skinnedMeshCount is int && data.skinnedMeshCount >= 1 && data.skinnedMeshCount <= 64
+        && data.hasSkinWeights is bool && data.hasSkinWeights == true
+        && data.textureCount is int && data.textureCount >= 0 && data.textureCount <= 64
+        && data.chunkCount is int && data.chunkCount >= 1 && data.chunkCount <= 40
+        && data.totalBytes is int && data.totalBytes >= 1 && data.totalBytes <= 25165824
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    function isValidCharacterChunk(data, userId, charId) {
+      return data.keys().hasAll(['charId', 'ownerUid', 'chunkIndex', 'dataBase64', 'createdAt'])
+        && data.keys().hasOnly(['charId', 'ownerUid', 'chunkIndex', 'dataBase64', 'createdAt'])
+        && isValidId(data.charId)
+        && data.charId == charId
+        && isValidId(data.ownerUid)
+        && data.ownerUid == userId
+        && data.ownerUid == request.auth.uid
+        && data.chunkIndex is int && data.chunkIndex >= 0 && data.chunkIndex < 40
+        && data.dataBase64 is string && data.dataBase64.size() >= 1 && data.dataBase64.size() <= 750000
+        && data.createdAt is timestamp;
+    }
+
+    match /users/{userId} {
+      allow get: if isValidId(userId) && isOwner(userId);
+      allow list: if false;
+      allow create: if isValidId(userId)
+        && isOwner(userId)
+        && isValidUserProfile(incoming(), userId)
+        && incoming().createdAt == request.time
+        && incoming().updatedAt == request.time;
+      allow update: if isValidId(userId)
+        && isOwner(userId)
+        && isValidUserProfile(incoming(), userId)
+        && incoming().uid == existing().uid
+        && incoming().createdAt == existing().createdAt
+        && incoming().updatedAt == request.time
+        && incoming().diff(existing()).affectedKeys().hasOnly(['displayName', 'updatedAt']);
+      allow delete: if false;
+
+      match /riggedCharacters/{charId} {
+        allow get: if isValidId(userId) && isValidId(charId) && isOwner(userId) && existing().ownerUid == request.auth.uid;
+        allow list: if isValidId(userId) && isOwner(userId) && resource.data.ownerUid == request.auth.uid;
+        allow create: if isValidId(userId)
+          && isValidId(charId)
+          && isOwner(userId)
+          && isValidRiggedCharacter(incoming(), userId, charId)
+          && incoming().createdAt == request.time
+          && incoming().updatedAt == request.time;
+        allow update: if isValidId(userId)
+          && isValidId(charId)
+          && isOwner(userId)
+          && existing().ownerUid == request.auth.uid
+          && isValidRiggedCharacter(incoming(), userId, charId)
+          && incoming().id == existing().id
+          && incoming().ownerUid == existing().ownerUid
+          && incoming().createdAt == existing().createdAt
+          && incoming().updatedAt == request.time
+          && incoming().diff(existing()).affectedKeys().hasOnly(['name', 'textureCount', 'chunkCount', 'totalBytes', 'updatedAt']);
+        allow delete: if isValidId(userId) && isValidId(charId) && isOwner(userId) && existing().ownerUid == request.auth.uid;
+
+        match /chunks/{chunkId} {
+          allow get: if isValidId(userId)
+            && isValidId(charId)
+            && isValidId(chunkId)
+            && isOwner(userId)
+            && existing().ownerUid == request.auth.uid
+            && get(/databases/$(database)/documents/users/$(userId)/riggedCharacters/$(charId)).data.ownerUid == request.auth.uid;
+          allow list: if isValidId(userId) && isValidId(charId) && isOwner(userId) && resource.data.ownerUid == request.auth.uid;
+          allow create: if isValidId(userId)
+            && isValidId(charId)
+            && isValidId(chunkId)
+            && isOwner(userId)
+            && isValidCharacterChunk(incoming(), userId, charId)
+            && incoming().createdAt == request.time
+            && exists(/databases/$(database)/documents/users/$(userId)/riggedCharacters/$(charId))
+            && get(/databases/$(database)/documents/users/$(userId)/riggedCharacters/$(charId)).data.ownerUid == request.auth.uid;
+          allow update: if false;
+          allow delete: if isValidId(userId)
+            && isValidId(charId)
+            && isValidId(chunkId)
+            && isOwner(userId)
+            && existing().ownerUid == request.auth.uid;
+        }
+      }
+    }
+  }
+}

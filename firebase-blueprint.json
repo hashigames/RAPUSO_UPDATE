@@ -1,0 +1,151 @@
+{
+  "entities": {
+    "UserProfile": {
+      "title": "UserProfile",
+      "description": "Private authenticated studio user profile record.",
+      "type": "object",
+      "properties": {
+        "uid": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "displayName": {
+          "type": "string",
+          "minLength": 0,
+          "maxLength": 120
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": ["uid", "createdAt", "updatedAt"]
+    },
+    "RiggedCharacter": {
+      "title": "RiggedCharacter",
+      "description": "Validated rigged 3D character metadata persisted forever in Firestore.",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "ownerUid": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 120
+        },
+        "sourceFormat": {
+          "type": "string",
+          "enum": ["glb", "gltf", "fbx"]
+        },
+        "primaryFileName": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 180
+        },
+        "boneCount": {
+          "type": "integer"
+        },
+        "skinnedMeshCount": {
+          "type": "integer"
+        },
+        "hasSkinWeights": {
+          "type": "boolean"
+        },
+        "textureCount": {
+          "type": "integer"
+        },
+        "chunkCount": {
+          "type": "integer"
+        },
+        "totalBytes": {
+          "type": "integer"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "ownerUid",
+        "name",
+        "sourceFormat",
+        "primaryFileName",
+        "boneCount",
+        "skinnedMeshCount",
+        "hasSkinWeights",
+        "textureCount",
+        "chunkCount",
+        "totalBytes",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "RiggedCharacterChunk": {
+      "title": "RiggedCharacterChunk",
+      "description": "Bounded base64 GLB payload slice (< 750 KB) for persistent Firestore storage under 1 MiB limit.",
+      "type": "object",
+      "properties": {
+        "charId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "ownerUid": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "chunkIndex": {
+          "type": "integer"
+        },
+        "dataBase64": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 750000
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": ["charId", "ownerUid", "chunkIndex", "dataBase64", "createdAt"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": { "$ref": "#/entities/UserProfile" },
+      "description": "Owner-isolated user profile document."
+    },
+    "/users/{userId}/riggedCharacters/{charId}": {
+      "schema": { "$ref": "#/entities/RiggedCharacter" },
+      "description": "Validated rigged 3D character metadata persisted per owner."
+    },
+    "/users/{userId}/riggedCharacters/{charId}/chunks/{chunkId}": {
+      "schema": { "$ref": "#/entities/RiggedCharacterChunk" },
+      "description": "Chunked binary slices of the validated rigged character GLB."
+    }
+  }
+}

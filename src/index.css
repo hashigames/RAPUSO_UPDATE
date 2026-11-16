@@ -1,0 +1,76 @@
+@import "tailwindcss";
+
+@layer base {
+  :root {
+    --font-display: 'Barlow Condensed', 'Noto Sans JP', sans-serif;
+    --font-sans: 'Plus Jakarta Sans', 'Noto Sans JP', system-ui, -apple-system, sans-serif;
+    --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, monospace;
+
+    --surface-0: #0d0f18;
+    --surface-1: #131622;
+    --surface-2: #191d2d;
+    --surface-3: #22273a;
+    --border-subtle: rgba(255, 255, 255, 0.08);
+    --border-strong: rgba(255, 255, 255, 0.16);
+    --text-primary: #f4f5f8;
+    --text-secondary: #a1a7b8;
+    --text-muted: #6c7388;
+    --accent-sakura: #e6a1b0;
+    --accent-sakura-strong: #f0b6c3;
+    --accent-mint: #5eead4;
+    --accent-green: #4ade80;
+    --accent-amber: #fbbf24;
+  }
+
+  [data-theme='graphite'] {
+    --surface-0: #111215;
+    --surface-1: #17181c;
+    --surface-2: #1e2026;
+    --surface-3: #282b33;
+    --border-subtle: rgba(255, 255, 255, 0.08);
+    --border-strong: rgba(255, 255, 255, 0.16);
+    --text-primary: #f4f5f6;
+    --text-secondary: #a3a7b0;
+    --text-muted: #6e737d;
+    --accent-sakura: #e6a1b0;
+    --accent-sakura-strong: #f0b6c3;
+    --accent-mint: #5eead4;
+  }
+
+  html,
+  body,
+  #root {
+    height: 100%;
+    font-family: var(--font-sans);
+    background-color: var(--surface-0);
+    color: var(--text-primary);
+  }
+}
+
+.font-display {
+  font-family: var(--font-display);
+}
+
+.font-mono-tech {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Custom subtle scrollbars for workstation panels */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.14);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(230, 161, 176, 0.4);
+}

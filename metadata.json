@@ -1,0 +1,8 @@
+{
+  "name": "RAPUSO",
+  "description": "RAPUSO (らぷそ) by LIGHTHOUSE 橋 — English–Japanese browser 3D animation, skeleton posing, 2D pose reference library, and manga/raster drawing-reference studio.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
